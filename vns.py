@@ -12,26 +12,47 @@ def generate_keys():
 
     return pr_key, pub_key
 
-def file_updating(user_data):
-    """Запись/обновление информации о пользователе в файле"""
+def file_updating(user_pubkey, user_ipfs_link):
+    """Запись/обновление ipfs-link пользователя в файле"""
 
     our_data_file = open("data.txt", "w")
-    our_data_file.write(user_data)
+    our_data_file.write(user_pubkey)
+    our_data_file.write(f'\nlink:{user_ipfs_link}')
 
 
-def name_service_work(username, ipfs_link, link_sign, user_info_to_file):
+def name_service_set(username, ipfs_link, link_sign):
     """Добавление/обновление ipfs-link в name-сервис"""
 
-    # Если пользователя еще нет в name-сервисе, проверяет подпись ipfs-link. Если она правильная, сохраняет строку в файл, добавляет ipfs-link в сервис.
-    # Если пользователь уже есть в name-сервисе, проверяет подпись ipfs-link. Если она правильная, обновляет строку файла, обновляет ipfs-link в сервисе.
+    # Если пользователя еще нет в name-сервисе, проверяет подпись ipfs-link. Если она правильная, добавляет ipfs-link в сервис.
+    # Если пользователь уже есть в name-сервисе, проверяет подпись ipfs-link. Если она правильная, обновляет ipfs-link в сервисе.
     vasya_pub_key_list = username.split(':')[1]
     vasya_pub_key = "".join(vasya_pub_key_list)
-    vk = ecdsa.VerifyingKey.from_string(bytes.fromhex(vasya_pub_key), curve=ecdsa.SECP256k1, hashfunc=sha256)
-    if vk.verify(bytes.fromhex(link_sign), bytes.fromhex(ipfs_link)):
-        name_service[username] = ipfs_link
-        file_updating(user_info_to_file)
+    vk = ecdsa.VerifyingKey.from_string(bytes.fromhex(vasya_pub_key), curve=ecdsa.SECP256k1)
+    try:
+        vk.verify(bytes.fromhex(link_sign), bytes(ipfs_link, encoding="utf-8"))
+    except ecdsa.keys.BadSignatureError:
+        print("Wrong digital signature!\n")
     else:
-        print("Wrong digital signature!")
+        file_updating(username, ipfs_link)
+        print("\nresult: ok (signature correct)\n")
+
+def name_service_get(username):
+    """Возвращает ipfs-link пользователя, если он найден"""
+
+    user_found = False
+    with open('data.txt') as f:
+        for line in f:
+            if user_found == False:
+                if line.strip('\n') == username:
+                    user_found = True
+                else:
+                    break
+            if line.find("link") != -1:
+                ipfs_link = line
+    if user_found:
+        print(f'\n{ipfs_link}\n')
+    else:
+        print("\nuser not found\n")
 
 
 if __name__ == "__main__":
@@ -39,11 +60,8 @@ if __name__ == "__main__":
     try: 
         (sys.argv[1])
     except IndexError:
-        uid = "--uid=vasya:e4de58fc3eee8412d75e203ede6f2693baa658b0ef8bb5662fcf44f5baa59705acff74f7756b92f1c733f7b57b046892929da3fe62a21620833e043b69bdfd3e"
-        ipfs_link = "--ipfs-link=a16991c90fc509a9bb31f9b89d12afc5e9d1badb591a622c49c76e3f8b159cc1"
-        sig = "--sig=d5bbbd4c7474503e460c825e46d26109838283e2d813fefecfe5f334021048dd3db59b5a145ad5d0f67a8f634d5dec17703d6a7babfb3b7a78efb8525b9dba6e"
-        update_data = "666"
-        command = "set"
+        uid = "--uid=vasya:a158b5f3ecec03592bf523137ef23563697efecfa605787eeb7b18f25f2be13f90bc459a8f117bbbccb9efff122ee39f7bafb3c7b8a33e7cb6a9e4f8f0a98698"
+        command = "get"
     else:
         if sys.argv[1] == "--request-type=name-record-generate":
             command = "generate"
@@ -51,8 +69,10 @@ if __name__ == "__main__":
             uid = sys.argv[2]
             ipfs_link = sys.argv[3]
             sig = sys.argv[4]
-            update_data = sys.argv[5]
             command = "set"
+        elif sys.argv[1] == "--request-type=name-record-get":
+            uid = sys.argv[2]
+            command = "get"
     
     if command=="generate":
         name_service = {}
@@ -69,14 +89,14 @@ if __name__ == "__main__":
 
         print(f'--uid={name_service_username}\n--ipfs-link={our_ipfs_link}\n--sig={ipfs_link_sign.hex()}')
 
-    if command=="set":
+    if command == "set":
         # Обрезаем параметры командной строки начиная с '='
         uid = uid[uid.find('=')+1:]
         ipfs_link = ipfs_link[ipfs_link.find('=')+1:]
         sig = sig[sig.find('=')+1:]
-        update_data = update_data[update_data.find('=')+1:]
 
-        name_service = {}
+        name_service_set(uid, ipfs_link, sig)
 
-        name_service_work(uid, ipfs_link, sig, update_data)
-
+    if command == "get":
+        uid = uid[uid.find('=')+1:]
+        name_service_get(uid)
