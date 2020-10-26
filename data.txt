@@ -1,2 +1,2 @@
-vasya:a158b5f3ecec03592bf523137ef23563697efecfa605787eeb7b18f25f2be13f90bc459a8f117bbbccb9efff122ee39f7bafb3c7b8a33e7cb6a9e4f8f0a98698
-link:a16991c90fc509a9bb31f9b89d12afc5e9d1badb591a622c49c76e3f8b159cc1
+Name: Vasiliy Ivanovich Chapaev
+Birthdate: 01-01-1970

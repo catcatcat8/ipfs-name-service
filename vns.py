@@ -3,6 +3,8 @@
 import sys
 import ecdsa
 from hashlib import sha256
+import ipfsApi
+
 
 def generate_keys():
     """Генерация пары ключей ECDSA secp256k1"""
@@ -15,9 +17,26 @@ def generate_keys():
 def file_updating(user_pubkey, user_ipfs_link):
     """Запись/обновление ipfs-link пользователя в файле"""
 
-    our_data_file = open("data.txt", "w")
+    our_data_file = open("name_service.txt", "w")
     our_data_file.write(user_pubkey)
     our_data_file.write(f'\nlink:{user_ipfs_link}')
+    our_data_file.close()
+
+def ipfs_generate(name, birthdate):
+    """Создает/обновляет файл с информацией о пользователе, добавляет его в IPFS, возвращает ipfs-link и ее sig"""
+
+    user_info_file = open("data.txt", "w")
+    user_info_file.write(f'Name: {name}\n')
+    user_info_file.write(f'Birthdate: {birthdate}')
+    user_info_file.close()
+    
+    api = ipfsApi.Client('127.0.0.1', 5001)  # требует ipfs-daemon заранее
+    res = api.add('data.txt')  # добавление в ipfs
+    
+    ipfs_link = res["Hash"]
+    ipfs_link_sign = vasya_pr_key.sign(ipfs_link.encode("utf-8"))
+
+    return ipfs_link, ipfs_link_sign.hex()
 
 
 def name_service_set(username, ipfs_link, link_sign):
@@ -37,10 +56,10 @@ def name_service_set(username, ipfs_link, link_sign):
         print("\nresult: ok (signature correct)\n")
 
 def name_service_get(username):
-    """Возвращает ipfs-link пользователя, если он найден"""
+    """Возвращает ipfs-link пользователя и data из ipfs, если он найден"""
 
     user_found = False
-    with open('data.txt') as f:
+    with open('name_service.txt') as f:
         for line in f:
             if user_found == False:
                 if line.strip('\n') == username:
@@ -51,17 +70,19 @@ def name_service_get(username):
                 ipfs_link = line
     if user_found:
         print(f'\n{ipfs_link}\n')
+        # api = ipfsApi.Client('127.0.0.1', 5001)  # требует ipfs-daemon заранее
+        # api,cat(ipfs_link)
+
     else:
         print("\nuser not found\n")
-
+    
 
 if __name__ == "__main__":
 
     try: 
         (sys.argv[1])
     except IndexError:
-        uid = "--uid=vasya:a158b5f3ecec03592bf523137ef23563697efecfa605787eeb7b18f25f2be13f90bc459a8f117bbbccb9efff122ee39f7bafb3c7b8a33e7cb6a9e4f8f0a98698"
-        command = "get"
+        command = "generate"
     else:
         if sys.argv[1] == "--request-type=name-record-generate":
             command = "generate"
@@ -75,19 +96,18 @@ if __name__ == "__main__":
             command = "get"
     
     if command=="generate":
-        name_service = {}
-    
         vasya_pr_key, vasya_pub_key = generate_keys()  # генерация ключей secp256k1
         pr_key_str = vasya_pr_key.to_string()
         pub_key_str = vasya_pub_key.to_string()
 
-        our_ipfs_link = sha256(b"our_link").hexdigest()
-        ipfs_link_sign = vasya_pr_key.sign(our_ipfs_link.encode("utf-8"))
+        name = str(input("Name: "))
+        birthdate = str(input("Birthdate: "))
+        ipfs_link, ipfs_link_sig = ipfs_generate(name, birthdate)
 
         our_nickname = "vasya"
         name_service_username = f'{our_nickname}:{pub_key_str.hex()}' # name_service_username = user_name:user_public_key
 
-        print(f'--uid={name_service_username}\n--ipfs-link={our_ipfs_link}\n--sig={ipfs_link_sign.hex()}')
+        print(f'--uid={name_service_username}\n--ipfs-link={ipfs_link}\n--sig={ipfs_link_sig}')
 
     if command == "set":
         # Обрезаем параметры командной строки начиная с '='
