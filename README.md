@@ -14,13 +14,19 @@ https://park.mail.ru/curriculum/program/lesson/14833/#homework_5097
 
 ## Сборка
 Собирать проект не надо, достаточно клонировать данный репозиторий.
+Однако перед запуском проекта необходимо:
+> Установить go-ipfs(https://dist.ipfs.io/#go-ipfs)
+> Инициализировать локальную ipfs-ноду - ipfs init
+> Запустить ipfs-ноду - ipfs daemon
 
 ## Запуск
-### Режим генерации (для упрощения ввода в режиме добавления)
+### Режим генерации (запуск ipfs-ноды, запись файла data.txt в нее, генерация ключей, генерация подписи ipfs-link)
 Для запуска проекта в режиме генерации напишите:
 > python3 vns.py --request-type=name-record-generate
 
-### Режим добавления/обновления
+После этого вводите с клавиатуры информацию, которая будет храниться в файле data.txt.
+
+### Режим добавления/обновления (добавление записи в name-сервис)
 Для запуска проекта в режиме добавления/обновления напишите (без "<, >"):
 > python3 vns.py --request-type=name-record-set --uid=<user_id:pubkey> --ipfs-link=<user_ipfs_link> --sig=<user_ipfs_link_signature(format = hex)>
 
@@ -32,7 +38,7 @@ python3 vns.py --request-type=name-record-set
 --sig=e0b606ad50b29516c2214e599c07c557eb0a7bbe47952a9f4d3ea84ba9c64308f184b2fcc47b514daad847507bbaa748a9ba9ca34735ca20ce5bfa720c71932e
 ```
 
-### Режим запроса
+### Режим запроса (вывод ipfs-link по заданному пользователю)
 Для запуска проекта в режиме запроса напишите (без "<, >"):
 > python3 vns.py --request-type=name-record-get --uid=<user_id:pubkey>
 
@@ -46,4 +52,5 @@ python3 vns.py --request-type=name-record-get
 ![](vns_example.png "Example")
 
 ## Используемые несистемные библиотеки
-ECDSA (https://pypi.org/project/ecdsa/)
+ecdsa (https://pypi.org/project/ecdsa/)
+ipfs-api (https://pypi.org/project/ipfs-api/)
