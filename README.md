@@ -61,4 +61,5 @@ python3 vns.py --request-type=name-record-get
 
 ## Используемые несистемные библиотеки
 ecdsa (https://pypi.org/project/ecdsa/)
+
 ipfs-api (https://pypi.org/project/ipfs-api/)
