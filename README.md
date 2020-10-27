@@ -16,7 +16,9 @@ https://park.mail.ru/curriculum/program/lesson/14833/#homework_5097
 Собирать проект не надо, достаточно клонировать данный репозиторий.
 Однако перед запуском проекта необходимо:
 > Установить go-ipfs(https://dist.ipfs.io/#go-ipfs)
+
 > Инициализировать локальную ipfs-ноду - ipfs init
+
 > Запустить ipfs-ноду - ipfs daemon
 
 ## Запуск
