@@ -17,21 +17,44 @@ def generate_keys():
 def file_updating(user_pubkey, user_ipfs_link):
     """Запись/обновление ipfs-link пользователя в файле"""
 
-    our_data_file = open("name_service.txt", "w")
-    our_data_file.write(user_pubkey)
-    our_data_file.write(f'\nlink:{user_ipfs_link}')
-    our_data_file.close()
+    updating = False  # обновление/новая запись
+    with open ('name_service.txt') as f:
+        for line in f:
+            if line.find(user_pubkey) != -1:
+                updating = True
+                break
+    f.close()
+    if not updating:  # новая запись в name-сервис
+        our_data_file = open("name_service.txt", "a")
+        our_data_file.write(f'\n{user_pubkey}')
+        our_data_file.write(f'\nlink:{user_ipfs_link}')
+        our_data_file.close()
+    else:
+        with open ('name_service.txt', 'w+') as f:  # update старой записи
+            for line in f:
+                if line.find(user_pubkey) == -1:
+                    file_str += line
+        f.close()
+        our_data_file = open("name_service.txt", "w")
+        our_data_file.write(file_str)
+        our_data_file.close()
 
-def ipfs_generate(name, birthdate):
+        our_data_file = open("name_service.txt", "a")
+        our_data_file.write(f'\n{user_pubkey}')
+        our_data_file.write(f'\nlink:{user_ipfs_link}')
+        our_data_file.close()
+                    
+
+def ipfs_generate(filename, name, birthdate):
     """Создает/обновляет файл с информацией о пользователе, добавляет его в IPFS, возвращает ipfs-link и ее sig"""
 
-    user_info_file = open("data.txt", "w")
+    user_info_file = open(f'{filename}', "w")
     user_info_file.write(f'Name: {name}\n')
     user_info_file.write(f'Birthdate: {birthdate}')
     user_info_file.close()
     
     api = ipfsApi.Client('127.0.0.1', 5001)  # требует ipfs-daemon заранее
-    res = api.add('data.txt')  # добавление в ipfs
+    res = api.add(f'{filename}')  # добавление в ipfs
     
     ipfs_link = res["Hash"]
     ipfs_link_sign = vasya_pr_key.sign(ipfs_link.encode("utf-8"))
@@ -64,14 +87,16 @@ def name_service_get(username):
             if user_found == False:
                 if line.strip('\n') == username:
                     user_found = True
-                else:
+            if user_found:
+                if line.find("link") != -1:
+                    ipfs_link = line
                     break
-            if line.find("link") != -1:
-                ipfs_link = line
     if user_found:
         print(f'\n{ipfs_link}\n')
         # api = ipfsApi.Client('127.0.0.1', 5001)  # требует ipfs-daemon заранее
-        # api,cat(ipfs_link)
+        # print('data(from IPFS node):\n')
+        # ipfs_link = ipfs_link[ipfs_link.find(':')+1:]
+        # api.cat(ipfs_link, )
 
     else:
         print("\nuser not found\n")
@@ -82,7 +107,8 @@ if __name__ == "__main__":
     try: 
         (sys.argv[1])
     except IndexError:
-        command = "generate"
+        uid = '--uid=vasya:8bb50d4ecd6ac8ad31ae0b4a9cda74b1469b4473841208cfb4f4bc6c1b7bad6d9b84d84aa5c05caa1a3d6bd94c1a218d5f9c766aec45cee2c160d393015608f5'
+        command = "get"
     else:
         if sys.argv[1] == "--request-type=name-record-generate":
             command = "generate"
@@ -100,11 +126,12 @@ if __name__ == "__main__":
         pr_key_str = vasya_pr_key.to_string()
         pub_key_str = vasya_pub_key.to_string()
 
-        name = str(input("Name: "))
+        file_name = str(input("Filename: "))
+        name = str(input("Username: "))
         birthdate = str(input("Birthdate: "))
-        ipfs_link, ipfs_link_sig = ipfs_generate(name, birthdate)
+        ipfs_link, ipfs_link_sig = ipfs_generate(file_name, name, birthdate)
 
-        our_nickname = "vasya"
+        our_nickname = "enter_your_nickname"
         name_service_username = f'{our_nickname}:{pub_key_str.hex()}' # name_service_username = user_name:user_public_key
 
         print(f'--uid={name_service_username}\n--ipfs-link={ipfs_link}\n--sig={ipfs_link_sig}')
