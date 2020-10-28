@@ -2,7 +2,6 @@
 
 import sys
 import ecdsa
-from hashlib import sha256
 import ipfsApi
 import os
 
@@ -15,7 +14,7 @@ def generate_keys():
     return pr_key, pub_key
 
 def file_updating(user_pubkey, user_ipfs_link):
-    """Запись/обновление ipfs-link пользователя в файле"""
+    """Запись/обновление ipfs-link пользователя в файле name_service.txt"""
 
     updating = False  # обновление/новая запись
     with open ('name_service.txt') as f:
@@ -50,6 +49,8 @@ def ipfs_generate(name, birthdate, filename):
 
     filename = f'{name}_{filename[:5]}.txt'
     user_info_file = open(f'{filename}', "w")
+
+    # Запись пользовательских данных в файл
     user_info_file.write(f'Name: {name}\n')
     user_info_file.write(f'Birthdate: {birthdate}')
     user_info_file.close()
@@ -58,7 +59,7 @@ def ipfs_generate(name, birthdate, filename):
     res = api.add(f'{filename}')  # добавление в ipfs
     
     ipfs_link = res["Hash"]
-    ipfs_link_sign = vasya_pr_key.sign(ipfs_link.encode("utf-8"))
+    ipfs_link_sign = vasya_pr_key.sign(ipfs_link.encode("utf-8"))  # генерация подписи
 
     return ipfs_link, ipfs_link_sign.hex()
 
@@ -93,10 +94,10 @@ def name_service_get(username):
                     ipfs_link = line
                     break
     if user_found:
-        print(f'\n{ipfs_link}\n')
+        print(f'\n{ipfs_link}\n')  # возвращает ipfs-link
         print('data(from IPFS node):')
         ipfs_link = ipfs_link[ipfs_link.find(':')+1:]
-        os.system(f'ipfs cat /ipfs/{ipfs_link}')
+        os.system(f'ipfs cat /ipfs/{ipfs_link}')  # возвращает data из ipfs
         print ('\n')
     else:
         print("\nuser not found\n")
@@ -107,6 +108,7 @@ if __name__ == "__main__":
     try: 
         (sys.argv[1])
     except IndexError:
+        # Для отладки через IDE
         uid = '--uid=vasya:8bb50d4ecd6ac8ad31ae0b4a9cda74b1469b4473841208cfb4f4bc6c1b7bad6d9b84d84aa5c05caa1a3d6bd94c1a218d5f9c766aec45cee2c160d393015608f5'
         command = "get"
     else:
@@ -121,6 +123,7 @@ if __name__ == "__main__":
             uid = sys.argv[2]
             command = "get"
     
+    # --- Режим генерации
     if command=="generate":
         vasya_pr_key, vasya_pub_key = generate_keys()  # генерация ключей secp256k1
         pr_key_str = vasya_pr_key.to_string()
@@ -136,6 +139,7 @@ if __name__ == "__main__":
 
         print(f'--uid={name_service_username}\n--ipfs-link={ipfs_link}\n--sig={ipfs_link_sig}')
 
+    # --- Режим добавления/обновления
     if command == "set":
         # Обрезаем параметры командной строки начиная с '='
         uid = uid[uid.find('=')+1:]
@@ -144,6 +148,7 @@ if __name__ == "__main__":
 
         name_service_set(uid, ipfs_link, sig)
 
+    # --- Режим запроса
     if command == "get":
         uid = uid[uid.find('=')+1:]
         name_service_get(uid)
