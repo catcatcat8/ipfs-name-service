@@ -4,7 +4,7 @@ import sys
 import ecdsa
 from hashlib import sha256
 import ipfsApi
-
+import os
 
 def generate_keys():
     """Генерация пары ключей ECDSA secp256k1"""
@@ -45,9 +45,10 @@ def file_updating(user_pubkey, user_ipfs_link):
         our_data_file.close()
                     
 
-def ipfs_generate(filename, name, birthdate):
+def ipfs_generate(name, birthdate, filename):
     """Создает/обновляет файл с информацией о пользователе, добавляет его в IPFS, возвращает ipfs-link и ее sig"""
 
+    filename = f'{name}_{filename[:5]}.txt'
     user_info_file = open(f'{filename}', "w")
     user_info_file.write(f'Name: {name}\n')
     user_info_file.write(f'Birthdate: {birthdate}')
@@ -93,11 +94,10 @@ def name_service_get(username):
                     break
     if user_found:
         print(f'\n{ipfs_link}\n')
-        # api = ipfsApi.Client('127.0.0.1', 5001)  # требует ipfs-daemon заранее
-        # print('data(from IPFS node):\n')
-        # ipfs_link = ipfs_link[ipfs_link.find(':')+1:]
-        # api.cat(ipfs_link, )
-
+        print('data(from IPFS node):')
+        ipfs_link = ipfs_link[ipfs_link.find(':')+1:]
+        os.system(f'ipfs cat /ipfs/{ipfs_link}')
+        print ('\n')
     else:
         print("\nuser not found\n")
     
@@ -126,10 +126,10 @@ if __name__ == "__main__":
         pr_key_str = vasya_pr_key.to_string()
         pub_key_str = vasya_pub_key.to_string()
 
-        file_name = str(input("Filename: "))
+        pub_key_str_to_file = pub_key_str.hex()
         name = str(input("Username: "))
         birthdate = str(input("Birthdate: "))
-        ipfs_link, ipfs_link_sig = ipfs_generate(file_name, name, birthdate)
+        ipfs_link, ipfs_link_sig = ipfs_generate(name, birthdate, pub_key_str_to_file)
 
         our_nickname = "enter_your_nickname"
         name_service_username = f'{our_nickname}:{pub_key_str.hex()}' # name_service_username = user_name:user_public_key
